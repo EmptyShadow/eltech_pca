@@ -1,7 +1,7 @@
 export OMP_NUM_THREADS:=1
 
 build:
-	@clang++ -o bin/pca -fopenmp src/main.cpp
-run:
-	@make build
-	@./bin/pca
+	@clang++ -o bin/${name} -fopenmp ${path}
+lab1:
+	@make name=lab1 path=src/lab1/main.cpp build
+	@./bin/lab1
