@@ -5,17 +5,18 @@
 #include <math.h>
 
 // Функция для инициализации переменных и считывания данных из stdin
-// m - сюда будет помещена матрица
+// m1 - сюда будет помещена матрица 1
+// m2 - сюда будет помещена матрица 2
 // v - сюда будет помещен вектор
 // min - минимальное значение элемента из stdin
 // max - максимальное значение элемента из stdin
-// s - размерность m и v из stdin
-void init(double* &m, double* &v, int &min, int &max, int &size);
+// s - размерность m1, m2 и v из stdin
+void init(double* &m1, double* &m2, double* &v, int &min, int &max, int &size);
 
 // Функция для инициализирования вектора результата
 // r - вектор результата
 // size - размерность вектора
-void init_result(double* &r, int size);
+void init_result_vector(double* &r, int size);
 
 // Функция для получения рандомного вектора заданной длины
 // min - минимальное значение элемента
@@ -44,6 +45,13 @@ void print_clock(clock_t t);
 // size - размерность матрицы и векторов
 void serial_matrix_multiply_vector(double* m, double* v, double* r, int size);
 
+// Функция для перемножения матрицы на матрицу последовательно
+// m1 - матрица 1
+// m2 - матрица 2
+// r - матрица результата
+// size - размерность матриц
+void serial_matrix_multiply_matrix(double* m1, double* m2, double* r, int size);
+
 // Функция для перемножения матрицы на вектор параллельно по строкам матрицы
 // m - матрица
 // v - вектор
@@ -51,12 +59,26 @@ void serial_matrix_multiply_vector(double* m, double* v, double* r, int size);
 // size - размерность матрицы и векторов
 void parallel_matrix_rows_multiply_vector(double* m, double* v, double* r, int size);
 
+// Функция для перемножения матрицы на матрицу параллельно по строкам матрицы
+// m1 - матрица 1
+// m2 - матрица 2
+// r - вектор результата
+// size - размерность матриц
+void parallel_matrix_rows_multiply_matrix(double* m1, double* m2, double* r, int size);
+
 // Функция для перемножения матрицы на вектор параллельно по столбцам матрицы
 // m - матрица
 // v - вектор
 // r - вектор результата
 // size - размерность матрицы и векторов
 void parallel_matrix_cols_multiply_vector(double* m, double* v, double* r, int size);
+
+// Функция для перемножения матрицы на матрицу параллельно строки со столбцами
+// m1 - матрица 1
+// m2 - матрица 2
+// r - вектор результата
+// size - размерность матриц
+void parallel_matrix_rows_multiply_matrix_cols(double* m1, double* m2, double* r, int size);
 
 // Функция для перемножения матрицы на вектор параллельно по блокам матрицы
 // m - матрица
@@ -72,6 +94,13 @@ void parallel_matrix_blocks1_multiply_vector(double* m, double* v, double* r, in
 // size - размерность матрицы и векторов
 void parallel_matrix_blocks2_multiply_vector(double* m, double* v, double* r, int size);
 
+// Функция для перемножения матрицы на матрицу параллельно по блокам матрицы
+// m1 - матрица 1
+// m2 - матрица 2
+// r - вектор результата
+// size - размерность матрицы и векторов
+void parallel_matrix_blocks_multiply_matrix(double* m1, double* m2, double* r, int size);
+
 // Функция разности двух векторов
 double* v_diff_v(double* v1, double* v2, int size);
 
@@ -79,64 +108,101 @@ double* v_diff_v(double* v1, double* v2, int size);
 double v_norma(double* v, int size);
 
 int main() {
-    double* m; // матрица
+    double *m1, *m2; // матрицы
     double* v; // вектор
-    double *r1, *r2, *r3, *r4, *r5;
+    double *r11, *r21, *r31, *r41, *r51;
+    double *r12, *r22, *r32, *r42;
     int min;   // минимальное значение элемента
     int max;   // максимальное значение элемента
     int size;  // размерность матрицы и векторов
     clock_t t; // переменная времени для подсчета времени вычисления
 
     // инициализация начальных данных
-    init(m, v, min, max, size);
+    init(m1, m2, v, min, max, size);
+    // print_vector(v, size);
+    // print_matrix(m1, size);
+    // print_matrix(m2, size);
 
     /** Последовательно **/
-    init_result(r1, size);
+    init_result_vector(r11, size);
     t = clock();
-    serial_matrix_multiply_vector(m, v, r1, size);
+    serial_matrix_multiply_vector(m1, v, r11, size);
     t = clock() - t;
     printf("\nПоследовательное умножение строк матрицы на вектор");
     print_clock(t);
+    // print_vector(r11, size);
+
+    init_result_vector(r12, size * size);
+    t = clock();
+    serial_matrix_multiply_matrix(m1, m2, r12, size);
+    t = clock() - t;
+    printf("\nПоследовательное умножение матрицы на матрицу");
+    print_clock(t);
+    // print_matrix(r12, size);
     /********************/
 
     /** Параллельно **/
-    init_result(r2, size);
+    init_result_vector(r21, size);
     t = clock();
-    parallel_matrix_rows_multiply_vector(m, v, r2, size);
+    parallel_matrix_rows_multiply_vector(m1, v, r21, size);
     t = clock() - t;
     printf("\nПараллельное умножение строк матрицы на вектор");
     print_clock(t);
-    printf("Ошибка: %f\n", v_norma(v_diff_v(r1, r2, size), size));
+    printf("Ошибка: %f\n", v_norma(v_diff_v(r11, r21, size), size));
 
-    init_result(r3, size);
+    init_result_vector(r31, size);
     t = clock();
-    parallel_matrix_cols_multiply_vector(m, v, r3, size);
+    parallel_matrix_cols_multiply_vector(m1, v, r31, size);
     t = clock() - t;
     printf("\nПараллельное умножение столбцов матрицы на вектор");
     print_clock(t);
-    printf("Ошибка: %f\n", v_norma(v_diff_v(r1, r3, size), size));
+    printf("Ошибка: %f\n", v_norma(v_diff_v(r11, r31, size), size));
 
-    init_result(r4, size);
+    init_result_vector(r41, size);
     t = clock();
-    parallel_matrix_blocks1_multiply_vector(m, v, r4, size);
+    parallel_matrix_blocks1_multiply_vector(m1, v, r41, size);
     t = clock() - t;
     printf("\nПараллельное умножение блоков матрицы на вектор без вложенного расспараллеливания");
     print_clock(t);
-    printf("Ошибка: %f\n", v_norma(v_diff_v(r1, r4, size), size));
+    printf("Ошибка: %f\n", v_norma(v_diff_v(r11, r41, size), size));
 
-    init_result(r5, size);
+    init_result_vector(r51, size);
     t = clock();
-    parallel_matrix_blocks2_multiply_vector(m, v, r5, size);
+    parallel_matrix_blocks2_multiply_vector(m1, v, r51, size);
     t = clock() - t;
     printf("\nПараллельное умножение блоков матрицы на вектор с вложенным расспараллеливанием в блоках");
     print_clock(t);
-    printf("Ошибка: %f\n", v_norma(v_diff_v(r1, r5, size), size));
+    printf("Ошибка: %f\n", v_norma(v_diff_v(r11, r51, size), size));
+
+    init_result_vector(r22, size * size);
+    t = clock();
+    parallel_matrix_rows_multiply_matrix(m1, m2, r22, size);
+    t = clock() - t;
+    printf("\nПараллельное умножение строк матрицы на матрицу");
+    print_clock(t);
+    printf("Ошибка: %f\n", v_norma(v_diff_v(r12, r22, size * size), size * size));
+
+    init_result_vector(r32, size * size);
+    t = clock();
+    parallel_matrix_rows_multiply_matrix_cols(m1, m2, r32, size);
+    t = clock() - t;
+    printf("\nПараллельное умножение строк матрицы на матрицу ленточное разделение данных строк и параллельно столбцы");
+    print_clock(t);
+    printf("Ошибка: %f\n", v_norma(v_diff_v(r12, r32, size * size), size * size));
+
+    init_result_vector(r42, size * size);
+    t = clock();
+    parallel_matrix_rows_multiply_matrix_cols(m1, m2, r42, size);
+    t = clock() - t;
+    printf("\nПараллельное умножение строк матрицы на матрицу по блокам");
+    print_clock(t);
+    printf("Ошибка: %f\n", v_norma(v_diff_v(r12, r42, size * size), size * size));
     /********************/
 
     return 0;
 }
 
-void init(double* &m, double* &v, int &min, int &max, int &size) {
+void init(double* &m1, double* &m2, double* &v, int &min, int &max, int &size) {
     // получение размерности матрицы, вектора и результирующего вектора
     do {
         printf("\nВведите размер матрицы и вектора: ");
@@ -160,17 +226,18 @@ void init(double* &m, double* &v, int &min, int &max, int &size) {
     } while (max <= min);
 
     // инициализация матрицы и вектора рандомными данными
-    m = get_rand_vector(min, max, size*size);
+    m1 = get_rand_vector(min, max, size*size);
+    m2 = get_rand_vector(min, max, size*size);
     v = get_rand_vector(min, max, size);
 }
 
-void init_result(double* &r, int size) {
+void init_result_vector(double* &r, int size) {
     r = new double [size]();
 }
 
 double* get_rand_vector(int min, int max, int size) {
     double* v = new double[size];
-    srand(time(NULL)/2);
+    // srand(time(timer_t)/2);
 
     for (int i = 0; i < size; i++) {
         v[i] = rand() % (max - min + 1) + min;
@@ -213,6 +280,18 @@ void serial_matrix_multiply_vector(double* m, double* v, double* r, int size) {
     }
 }
 
+void serial_matrix_multiply_matrix(double* m1, double* m2, double* r, int size) {
+    // индекс строк m1, индекс столбцов m2, индекс элемента в строке m1 и столбце m2
+    int i, j, k;
+    for (i = 0; i < size; i++) {
+        for (j = 0; j < size; j++) {
+            for (k = 0; k < size; k++) {
+                r[i * size + j] += m1[i * size + k] * m2[k * size + j];
+            }
+        }
+    }
+}
+
 void parallel_matrix_rows_multiply_vector(double* m, double* v, double* r, int size) {
     int i, j;
     // parallel for - расспараллеливает первый цикл 
@@ -221,6 +300,19 @@ void parallel_matrix_rows_multiply_vector(double* m, double* v, double* r, int s
     for (i = 0; i < size; i++) {
         for (j = 0; j < size; j++) {
             r[i] += m[i * size + j] * v[j];
+        }
+    }
+}
+
+void parallel_matrix_rows_multiply_matrix(double* m1, double* m2, double* r, int size) {
+    // индекс строк m1, индекс столбцов m2, индекс элемента в строке m1 и столбце m2
+    int i, j, k;
+    #pragma omp parallel for private (j, k) 
+    for (i = 0; i < size; i++) {
+        for (j = 0; j < size; j++) {
+            for (k = 0; k < size; k++) {
+                r[i * size + j] += m1[i * size + k] * m2[k * size + j];
+            }
         }
     }
 }
@@ -245,6 +337,23 @@ void parallel_matrix_cols_multiply_vector(double* m, double* v, double* r, int s
     omp_destroy_lock(&lock);
 }
 
+void parallel_matrix_rows_multiply_matrix_cols(double* m1, double* m2, double* r, int size) {
+    // индекс строк m1, индекс столбцов m2, индекс элемента в строке m1 и столбце m2
+    int i, j, k;
+    int nestedThreadsNum = 2;  // количество потоков для умножения строки на столбцы
+    omp_set_nested(true);
+    omp_set_num_threads (nestedThreadsNum);
+    #pragma omp parallel for private (j, k) 
+    for (i = 0; i < size; i++) {
+        #pragma omp parallel for private (k)
+        for (j = 0; j < size; j++) { 
+            for (k = 0; k < size; k++) {
+                r[i * size + j] += m1[i * size + k] * m2[k * size + j];
+            }
+        }
+    }
+}
+
 void parallel_matrix_blocks1_multiply_vector(double* m, double* v, double* r, int size) {
     int threadID;
     int gridThreadsNum = 4;
@@ -260,7 +369,7 @@ void parallel_matrix_blocks1_multiply_vector(double* m, double* v, double* r, in
 
         // создание массива куда будет помещен результат по потоку
         double * pThreadResult;
-        init_result(pThreadResult, size);
+        init_result_vector(pThreadResult, size);
 
         // стартовая координата элемента в блоке текущего потока
         int i_start = (int(threadID / gridSize)) * blockSize;
@@ -302,9 +411,33 @@ void parallel_matrix_blocks2_multiply_vector(double* m, double* v, double* r, in
     }
 }
 
+void parallel_matrix_blocks_multiply_matrix(double* m1, double* m2, double* r, int size) {
+    int gridThreadsNum = 4;
+    int gridSize = int(sqrt(double(gridThreadsNum)));
+    // Предполагается, что размер матрицы кратен
+    // размеру сетки потоков
+    int blockSize = size / gridSize; // размер одного блока
+    omp_set_num_threads(gridThreadsNum);
+
+    #pragma omp parallel
+    {
+        int threadID = omp_get_thread_num();
+        int rowIndex = threadID / gridSize;
+        int colIndex = threadID % gridSize;
+        for (int iter = 0; iter < gridSize; iter++) {
+            for (int i = rowIndex * blockSize; i < (rowIndex + 1) * blockSize; i++) {
+                for (int j = colIndex * blockSize; j < (colIndex + 1) * blockSize; j++) {
+                    for (int k = iter * blockSize; k < (iter + 1) * blockSize; k++)
+                        r[i * size+j] += m1[i * size + k] * m2[k * size + j];
+                }
+            }
+        }
+    } // pragma omp parallel
+}
+
 double* v_diff_v(double* v1, double* v2, int size) {
     double* r;
-    init_result(r, size);
+    init_result_vector(r, size);
 
     #pragma omp parallel for
     for (int i = 0; i < size; i++) {
