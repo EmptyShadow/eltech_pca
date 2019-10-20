@@ -1,4 +1,4 @@
-export OMP_NUM_THREADS:=1
+export OMP_NUM_THREADS:=8
 
 build:
 	@clang++ -o bin/${name} -fopenmp ${path}
