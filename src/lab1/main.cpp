@@ -1,6 +1,5 @@
 #include <stdio.h>  /* printf, scanf, puts, NULL */
 #include <stdlib.h> /* srand, rand */
-#include <time.h>   /* time */
 #include <omp.h>
 #include <math.h>
 
@@ -36,7 +35,7 @@ void print_matrix(const double *m, int size);
 
 // Функция для отображения времени
 // t - время
-void print_clock(clock_t t);
+void print_clock(double t);
 
 // Функция для перемножения матрицы на вектор последовательно
 // m - матрица
@@ -113,10 +112,10 @@ int main()
     double *v;       // вектор
     double *r11, *r21, *r31, *r41, *r51;
     double *r12, *r22, *r32, *r42;
-    int min;   // минимальное значение элемента
-    int max;   // максимальное значение элемента
-    int size;  // размерность матрицы и векторов
-    clock_t t; // переменная времени для подсчета времени вычисления
+    int min;  // минимальное значение элемента
+    int max;  // максимальное значение элемента
+    int size; // размерность матрицы и векторов
+    double t; // переменная времени для подсчета времени вычисления
 
     // инициализация начальных данных
     init(m1, m2, v, min, max, size);
@@ -126,75 +125,139 @@ int main()
 
     /** Последовательно **/
     init_result_vector(r11, size);
-    t = clock();
+    t = omp_get_wtime();
     serial_matrix_multiply_vector(m1, v, r11, size);
-    t = clock() - t;
+    t = omp_get_wtime() - t;
     printf("\nПоследовательное умножение строк матрицы на вектор");
     print_clock(t);
     // print_vector(r11, size);
 
     init_result_vector(r12, size * size);
-    t = clock();
+    t = omp_get_wtime();
     serial_matrix_multiply_matrix(m1, m2, r12, size);
-    t = clock() - t;
+    t = omp_get_wtime() - t;
     printf("\nПоследовательное умножение матрицы на матрицу");
     print_clock(t);
     // print_matrix(r12, size);
     /********************/
 
+    printf("Максимальное количество потоков: %d\n", omp_get_max_threads());
+    omp_set_num_threads(omp_get_max_threads());
+
     /** Параллельно **/
     init_result_vector(r21, size);
-    t = clock();
+    t = omp_get_wtime();
     parallel_matrix_rows_multiply_vector(m1, v, r21, size);
-    t = clock() - t;
+    t = omp_get_wtime() - t;
     printf("\nПараллельное умножение строк матрицы на вектор");
     print_clock(t);
     printf("Ошибка: %f\n", v_norma(v_diff_v(r11, r21, size), size));
 
     init_result_vector(r31, size);
-    t = clock();
+    t = omp_get_wtime();
     parallel_matrix_cols_multiply_vector(m1, v, r31, size);
-    t = clock() - t;
+    t = omp_get_wtime() - t;
     printf("\nПараллельное умножение столбцов матрицы на вектор");
     print_clock(t);
     printf("Ошибка: %f\n", v_norma(v_diff_v(r11, r31, size), size));
 
     init_result_vector(r41, size);
-    t = clock();
+    t = omp_get_wtime();
     parallel_matrix_blocks1_multiply_vector(m1, v, r41, size);
-    t = clock() - t;
+    t = omp_get_wtime() - t;
     printf("\nПараллельное умножение блоков матрицы на вектор без вложенного расспараллеливания");
     print_clock(t);
     printf("Ошибка: %f\n", v_norma(v_diff_v(r11, r41, size), size));
 
     init_result_vector(r51, size);
-    t = clock();
+    t = omp_get_wtime();
     parallel_matrix_blocks2_multiply_vector(m1, v, r51, size);
-    t = clock() - t;
+    t = omp_get_wtime() - t;
     printf("\nПараллельное умножение блоков матрицы на вектор с вложенным расспараллеливанием в блоках");
     print_clock(t);
     printf("Ошибка: %f\n", v_norma(v_diff_v(r11, r51, size), size));
 
     init_result_vector(r22, size * size);
-    t = clock();
+    t = omp_get_wtime();
     parallel_matrix_rows_multiply_matrix(m1, m2, r22, size);
-    t = clock() - t;
+    t = omp_get_wtime() - t;
     printf("\nПараллельное умножение строк матрицы на матрицу");
     print_clock(t);
     printf("Ошибка: %f\n", v_norma(v_diff_v(r12, r22, size * size), size * size));
 
     init_result_vector(r32, size * size);
-    t = clock();
+    t = omp_get_wtime();
     parallel_matrix_rows_multiply_matrix_cols(m1, m2, r32, size);
-    t = clock() - t;
+    t = omp_get_wtime() - t;
     printf("\nПараллельное умножение строк матрицы на матрицу ленточное разделение данных строк и параллельно столбцы");
     print_clock(t);
     printf("Ошибка: %f\n", v_norma(v_diff_v(r12, r32, size * size), size * size));
 
     init_result_vector(r42, size * size);
-    t = clock();
+    t = omp_get_wtime();
     parallel_matrix_rows_multiply_matrix_cols(m1, m2, r42, size);
-    t = clock() - t;
+    t = omp_get_wtime() - t;
+    printf("\nПараллельное умножение строк матрицы на матрицу по блокам");
+    print_clock(t);
+    printf("Ошибка: %f\n", v_norma(v_diff_v(r12, r42, size * size), size * size));
+    /********************/
+
+    printf("Максимальное количество потоков: %d\n", 1);
+    omp_set_num_threads(1);
+
+    /** Параллельно **/
+    init_result_vector(r21, size);
+    t = omp_get_wtime();
+    parallel_matrix_rows_multiply_vector(m1, v, r21, size);
+    t = omp_get_wtime() - t;
+    printf("\nПараллельное умножение строк матрицы на вектор");
+    print_clock(t);
+    printf("Ошибка: %f\n", v_norma(v_diff_v(r11, r21, size), size));
+
+    init_result_vector(r31, size);
+    t = omp_get_wtime();
+    parallel_matrix_cols_multiply_vector(m1, v, r31, size);
+    t = omp_get_wtime() - t;
+    printf("\nПараллельное умножение столбцов матрицы на вектор");
+    print_clock(t);
+    printf("Ошибка: %f\n", v_norma(v_diff_v(r11, r31, size), size));
+
+    init_result_vector(r41, size);
+    t = omp_get_wtime();
+    parallel_matrix_blocks1_multiply_vector(m1, v, r41, size);
+    t = omp_get_wtime() - t;
+    printf("\nПараллельное умножение блоков матрицы на вектор без вложенного расспараллеливания");
+    print_clock(t);
+    printf("Ошибка: %f\n", v_norma(v_diff_v(r11, r41, size), size));
+
+    init_result_vector(r51, size);
+    t = omp_get_wtime();
+    parallel_matrix_blocks2_multiply_vector(m1, v, r51, size);
+    t = omp_get_wtime() - t;
+    printf("\nПараллельное умножение блоков матрицы на вектор с вложенным расспараллеливанием в блоках");
+    print_clock(t);
+    printf("Ошибка: %f\n", v_norma(v_diff_v(r11, r51, size), size));
+
+    init_result_vector(r22, size * size);
+    t = omp_get_wtime();
+    parallel_matrix_rows_multiply_matrix(m1, m2, r22, size);
+    t = omp_get_wtime() - t;
+    printf("\nПараллельное умножение строк матрицы на матрицу");
+    print_clock(t);
+    printf("Ошибка: %f\n", v_norma(v_diff_v(r12, r22, size * size), size * size));
+
+    init_result_vector(r32, size * size);
+    t = omp_get_wtime();
+    parallel_matrix_rows_multiply_matrix_cols(m1, m2, r32, size);
+    t = omp_get_wtime() - t;
+    printf("\nПараллельное умножение строк матрицы на матрицу ленточное разделение данных строк и параллельно столбцы");
+    print_clock(t);
+    printf("Ошибка: %f\n", v_norma(v_diff_v(r12, r32, size * size), size * size));
+
+    init_result_vector(r42, size * size);
+    t = omp_get_wtime();
+    parallel_matrix_rows_multiply_matrix_cols(m1, m2, r42, size);
+    t = omp_get_wtime() - t;
     printf("\nПараллельное умножение строк матрицы на матрицу по блокам");
     print_clock(t);
     printf("Ошибка: %f\n", v_norma(v_diff_v(r12, r42, size * size), size * size));
@@ -281,9 +344,9 @@ void print_matrix(const double *m, int size)
     }
 }
 
-void print_clock(clock_t t)
+void print_clock(double t)
 {
-    printf("\nмикросекунды: %ld, секунды: %f\n", t, ((float)t) / CLOCKS_PER_SEC);
+    printf("\nсекунды: %f\n", t);
 }
 
 void serial_matrix_multiply_vector(double *m, double *v, double *r, int size)
