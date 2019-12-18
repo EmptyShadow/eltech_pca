@@ -6,6 +6,10 @@
 #include <math.h>
 #include <algorithm>    // std::copy
 
+#define N 100000
+#define MIN -32
+#define MAX 99
+
 /**
  * Инициализация и считывания данных из stdin
  * @param v - сгенерированный вектор
@@ -79,13 +83,15 @@ double *openmp_sort_shell(const double *v, int size);
 int main(int argc, char **argv) {
     double *v; // исходный вектор
     double *r; // результат
-    int min;   // минимальное значение элемента
-    int max;   // максимальное значение элемента
-    int size;  // размерность матрицы и векторов
+    int min = MIN;   // минимальное значение элемента
+    int max = MAX;   // максимальное значение элемента
+    int size = N;  // размерность матрицы и векторов
     double t; // переменная времени для подсчета времени вычисления
 
     // инициализация начальных данных
-    init(v, min, max, size);
+//    init(v, min, max, size);
+    v = get_rand_vector(min, max, size);
+//    omp_set_num_threads(4);
 //    print_vector(v, size);
 
     // последовательно
