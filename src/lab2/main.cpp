@@ -1,7 +1,8 @@
-#include <stdio.h>  /* printf, scanf, puts, NULL */
-#include <stdlib.h> /* srand, rand */
-#include <time.h>   /* time */
+#include <cstdio>  /* printf, scanf, puts, NULL */
+#include <cstdlib> /* srand, rand */
+#include <ctime>   /* time */
 #include <omp.h>
+#include <mpi.h>
 #include <math.h>
 #include <algorithm>    // std::copy
 
@@ -20,6 +21,14 @@ void init(double *&v, int &min, int &max, int &size);
  * @param size - размерность вектора
  */
 void init_result_vector(double *&r, int size);
+
+/**
+ * Функция копирования вектора
+ * @param v - исходный вектор
+ * @param size - размер вектора
+ * @return - копия
+ */
+double *copy_vector(const double *v, int size);
 
 /**
  * Функция для получения рандомного вектора заданной длины
@@ -41,7 +50,7 @@ void print_vector(const double *v, int size);
  * Процедура для отображения времени
  * @param t - время
  */
-void print_clock(clock_t t);
+void print_clock(double t);
 
 /**
  * Процедура проверки правильности сортировки
@@ -67,31 +76,31 @@ double *serial_sort_shell(const double *v, int size);
  */
 double *openmp_sort_shell(const double *v, int size);
 
-int main() {
+int main(int argc, char **argv) {
     double *v; // исходный вектор
     double *r; // результат
     int min;   // минимальное значение элемента
     int max;   // максимальное значение элемента
     int size;  // размерность матрицы и векторов
-    clock_t t; // переменная времени для подсчета времени вычисления
+    double t; // переменная времени для подсчета времени вычисления
 
     // инициализация начальных данных
     init(v, min, max, size);
 //    print_vector(v, size);
 
     // последовательно
-    t = clock();
+    t = omp_get_wtime();
     r = serial_sort_shell(v, size);
-    t = clock() - t;
+    t = omp_get_wtime() - t;
     printf("\nПоследовательная сортировка методом Шелла");
     print_clock(t);
 //    print_vector(r, size);
     check_sort(r, size);
 
     // параллельно openmp
-    t = clock();
+    t = omp_get_wtime();
     r = openmp_sort_shell(v, size);
-    t = clock() - t;
+    t = omp_get_wtime() - t;
     printf("\nПараллельная сортировка методом Шелла (openmp)");
     print_clock(t);
 //    print_vector(r, size);
@@ -133,8 +142,15 @@ void init_result_vector(double *&r, int size) {
     r = new double[size]();
 }
 
+double *copy_vector(const double *v, int size) {
+    double *a;
+    init_result_vector(a, size);
+    std::copy(v, v + size, a);
+    return a;
+}
+
 double *get_rand_vector(int min, int max, int size) {
-    double *v = new double[size];
+    auto *v = new double[size];
 
     for (int i = 0; i < size; i++) {
         v[i] = rand() % (max - min + 1) + min;
@@ -151,26 +167,23 @@ void print_vector(const double *v, int size) {
     printf("%.2f|\n", v[size - 1]);
 }
 
-void print_clock(clock_t t) {
-    printf("\nмикросекунды: %ld, секунды: %f", t, ((float) t) / CLOCKS_PER_SEC);
+void print_clock(double t) {
+    printf("\nВремя исполнения: %.16g", t);
 }
 
 void check_sort(const double *v, int size) {
     for (int i = 1; i < size; i++) {
         if (v[i - 1] > v[i]) {
-            printf("\nСортировка плохая");
+            printf("\nСортировка плохая\n");
             return;
         };
     }
 
     printf("\nСортировка верная");
-    return;
 }
 
 double *serial_sort_shell(const double *v, int size) {
-    double *a;
-    init_result_vector(a, size);
-    std::copy(v, v + size, a);
+    double *a = copy_vector(v, size);
 
     //инициализируем шаг
     int step = size / 2;
@@ -186,7 +199,7 @@ double *serial_sort_shell(const double *v, int size) {
             // чем элемент находящийся на расстоянии шага
             while (j >= 0 && a[j] > a[j + step]) {
                 // меняем их местами
-                int temp = a[j];
+                double temp = a[j];
                 a[j] = a[j + step];
                 a[j + step] = temp;
                 j--;
@@ -201,9 +214,7 @@ double *serial_sort_shell(const double *v, int size) {
 }
 
 double *openmp_sort_shell(const double *v, int size) {
-    double *a;
-    init_result_vector(a, size);
-    std::copy(v, v + size, a);
+    double *a = copy_vector(v, size);
 
 #pragma omp parallel firstprivate(size)
     {
@@ -224,7 +235,7 @@ double *openmp_sort_shell(const double *v, int size) {
                 // чем элемент находящийся на расстоянии шага
                 while (j >= 0 && a[j] > a[j + step]) {
                     // меняем их местами
-                    int temp = a[j];
+                    double temp = a[j];
                     a[j] = a[j + step];
                     a[j + step] = temp;
                     j--;
