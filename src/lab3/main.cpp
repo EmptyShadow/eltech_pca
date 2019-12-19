@@ -3,7 +3,7 @@
 #include <cmath>
 #include <algorithm>
 
-#define N_MAX 100000
+#define N_MAX 1000
 
 /**
  * Инициализация данных
@@ -47,6 +47,16 @@ void transform_input_data(const double *a, const double *f, const int size, cons
 double *serial_sor(const int size, const double *matrix, const double *f, const double om, double eps);
 
 /**
+ * Функция параллельного метода верхней релаксации
+ * @param size - размер
+ * @param matrix - матрица A
+ * @param f - вектор f
+ * @param om - параметр ω
+ * @return
+ */
+double *openmp_sor(const int size, const double *matrix, const double *f, const double om, double eps);
+
+/**
  * Норма вектора
  * @param v
  * @param size
@@ -73,7 +83,13 @@ int main(int argc, char **argv) {
     print_vector(x, size);
     printf("%lf", omp_get_wtime() - wtime);
 
+    wtime = omp_get_wtime();
+    auto x2 = openmp_sor(size, matrix, f, om, eps);
+    print_vector(x2, size);
+    printf("%lf", omp_get_wtime() - wtime);
+
     delete x;
+    delete x2;
     delete matrix;
     delete f;
 
@@ -117,7 +133,7 @@ void init(int &size, double &om, double *&matrix, double *&f, double &eps) {
     scanf("%lf", &eps);
 }
 
-void diff(double *dr, const double *v1, const double *v2, int size){
+void diff(double *dr, const double *v1, const double *v2, int size) {
     for (int i = 0; i < size; i++) {
         dr[i] = v1[i] - v2[i];
     }
@@ -144,10 +160,10 @@ void print_vector(const double *v, int size) {
 void transform_input_data(const double *a, const double *f, const int size, const double om, double *c, double *d) {
     for (int i = 0; i < size; i++) {
         for (int j = 0; j < size; j++) {
-            c[size * i + j] = -a[size * i + j] * om / a[size * i + i];
+            c[size * i + j] = -a[size * i + j] / a[size * i + i];
         }
 
-        d[i] = f[i] * om / a[size * i + i];
+        d[i] = f[i] / a[size * i + i];
     }
 }
 
@@ -155,7 +171,6 @@ double *serial_sor(const int size, const double *matrix, const double *f, const 
     int step = 0;
     int i, j;
     double s1, s2;
-    double currentErr = 1.0;
     double *c, *d;
     double *x_prev, *x_next, *diffA, *tmp;
 
@@ -181,20 +196,79 @@ double *serial_sor(const int size, const double *matrix, const double *f, const 
             s2 = 0;
 
             for (j = 0; j < i; j++) {
-                s1 = s1 + c[size * i + j] * x_next[j];
+                s1 = s1 + c[size * i + j] * om * x_next[j];
             }
 
             for (j = i + 1; j < size; j++) {
-                s2 = s2 + c[size * i + j] * x_prev[j];
+                s2 = s2 + c[size * i + j] * om * x_prev[j];
             }
 
-            x_next[i] = s1 + s2 + d[i] - x_prev[i] * (om - 1);
+            x_next[i] = s1 + s2 + d[i] * om - x_prev[i] * (om - 1);
         }
 
         diff(diffA, x_prev, x_next, size);
-        currentErr = norma(diffA, size);
-    } while (currentErr > eps && step < N_MAX);
+    } while (norma(diffA, size) > eps && step < N_MAX);
 
+
+    delete x_prev;
+    delete diffA;
+    delete c;
+    delete d;
+
+    return x_next;
+}
+
+double *openmp_sor(const int size, const double *matrix, const double *f, const double om, double eps) {
+    int step = 0;
+    int i, j;
+    double s1, s2;
+    double *c, *d;
+    double *x_prev, *x_next, *diffA, *tmp;
+
+    x_prev = new double[size];
+    x_next = new double[size];
+    diffA = new double[size];
+    c = new double[size * size];
+    d = new double[size];
+
+    std::fill_n(x_prev, size, 0);
+    std::fill_n(x_next, size, 0);
+    transform_input_data(matrix, f, size, om, c, d);
+
+    do {
+        step++;
+
+        tmp = x_next;
+        x_next = x_prev;
+        x_prev = tmp;
+
+        {
+#pragma omp parallel for private(i, j, s1, s2) shared(size, om, x_prev, x_next, c, d) schedule(dynamic)
+            for (i = 0; i < size; i++) {
+                s1 = 0.0;
+                s2 = 0.0;
+
+                for (j = 0; j < i; j++) {
+                    double q;
+#pragma omp atomic read
+                    q = x_next[j];
+                    s1 = s1 + c[size * i + j] * om * q;
+                }
+
+                for (j = i + 1; j < size; j++) {
+                    double q;
+#pragma omp atomic read
+                    q = x_prev[j];
+                    s2 = s2 + c[size * i + j] * om * q;
+                }
+
+#pragma omp atomic write
+                x_next[i] = s1 + s2 + d[i] * om - x_prev[i] * (om - 1);
+            }
+        }
+
+        diff(diffA, x_prev, x_next, size);
+    } while (norma(diffA, size) > eps && step < N_MAX);
 
     delete x_prev;
     delete diffA;
