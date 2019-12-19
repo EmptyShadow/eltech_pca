@@ -83,13 +83,28 @@ int main(int argc, char **argv) {
     print_vector(x, size);
     printf("%lf", omp_get_wtime() - wtime);
 
+    omp_set_num_threads(2);
     wtime = omp_get_wtime();
     auto x2 = openmp_sor(size, matrix, f, om, eps);
     print_vector(x2, size);
     printf("%lf", omp_get_wtime() - wtime);
 
+    omp_set_num_threads(4);
+    wtime = omp_get_wtime();
+    auto x3 = openmp_sor(size, matrix, f, om, eps);
+    print_vector(x3, size);
+    printf("%lf", omp_get_wtime() - wtime);
+
+    omp_set_num_threads(8);
+    wtime = omp_get_wtime();
+    auto x4 = openmp_sor(size, matrix, f, om, eps);
+    print_vector(x4, size);
+    printf("%lf", omp_get_wtime() - wtime);
+
     delete x;
     delete x2;
+    delete x3;
+    delete x4;
     delete matrix;
     delete f;
 
