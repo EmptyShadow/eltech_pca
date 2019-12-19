@@ -34,3 +34,7 @@ if(MPI_LINK_FLAGS)
     set_target_properties(lab2_mpich PROPERTIES
             LINK_FLAGS "${MPI_LINK_FLAGS}")
 endif()
+
+add_executable(lab3
+        src/lab3/main.cpp)
+target_link_libraries(lab3 PUBLIC OpenMP::OpenMP_CXX)
