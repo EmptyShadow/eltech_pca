@@ -42,3 +42,7 @@ target_link_libraries(lab3 PUBLIC OpenMP::OpenMP_CXX)
 add_executable(lab4
         src/lab4/main.cpp)
 target_link_libraries(lab4 PUBLIC OpenMP::OpenMP_CXX)
+
+add_executable(lab5
+        src/lab5/main.cpp)
+target_link_libraries(lab5 PUBLIC OpenMP::OpenMP_CXX)
